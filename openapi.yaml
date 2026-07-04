@@ -1,0 +1,481 @@
+openapi: 3.0.3
+info:
+  title: TaskFlow — API de Projetos e Tarefas
+  description: >
+    Contrato da API REST do módulo de Projetos e Tarefas do TaskFlow.
+    Erros seguem o formato ProblemDetails (RFC 7807). As regras de negócio e as
+    decisões de design que embasam este contrato estão em `docs/decisoes.md`.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:5000
+    description: Ambiente local de desenvolvimento
+
+tags:
+  - name: Projetos
+    description: Operações sobre projetos
+  - name: Tarefas
+    description: Operações sobre tarefas de um projeto
+
+paths:
+  /projetos:
+    post:
+      tags: [Projetos]
+      summary: Criar projeto
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Projeto criado
+          headers:
+            Location:
+              description: URL do projeto criado
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+    get:
+      tags: [Projetos]
+      summary: Listar projetos
+      operationId: listProjects
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filtra projetos por status
+          schema:
+            $ref: '#/components/schemas/ProjectStatus'
+      responses:
+        '200':
+          description: Lista de projetos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /projetos/{id}:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    get:
+      tags: [Projetos]
+      summary: Buscar projeto por ID
+      operationId: getProjectById
+      responses:
+        '200':
+          description: Projeto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [Projetos]
+      summary: Atualizar projeto (nome, descrição, status)
+      description: >
+        Atualização parcial: campos omitidos permanecem inalterados. Arquivar
+        (status=archived) só é permitido se nenhuma tarefa do projeto estiver
+        in_progress (regra 1), caso contrário retorna 422.
+      operationId: updateProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProjectRequest'
+      responses:
+        '200':
+          description: Projeto atualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: >
+            Violação de regra de negócio. Ex.: tentar arquivar um projeto que
+            possui tarefa in_progress (regra 1).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: about:blank
+                title: Não é possível arquivar o projeto
+                status: 422
+                detail: O projeto possui tarefas em andamento (in_progress) e não pode ser arquivado.
+
+  /projetos/{id}/tarefas:
+    parameters:
+      - $ref: '#/components/parameters/ProjectId'
+    post:
+      tags: [Tarefas]
+      summary: Criar tarefa em um projeto
+      description: >
+        A tarefa nasce com status pending. Não é permitido criar tarefas em um
+        projeto com status archived (regra 4) — retorna 422.
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+      responses:
+        '201':
+          description: Tarefa criada
+          headers:
+            Location:
+              description: URL da tarefa criada
+              schema:
+                type: string
+                format: uri
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Projeto arquivado não aceita novas tarefas (regra 4).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: about:blank
+                title: Não é possível criar tarefa
+                status: 422
+                detail: O projeto está arquivado e não aceita novas tarefas.
+    get:
+      tags: [Tarefas]
+      summary: Listar tarefas do projeto
+      operationId: listTasks
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filtra tarefas por status
+          schema:
+            $ref: '#/components/schemas/TaskStatus'
+        - name: priority
+          in: query
+          required: false
+          description: Filtra tarefas por prioridade
+          schema:
+            $ref: '#/components/schemas/TaskPriority'
+      responses:
+        '200':
+          description: Lista de tarefas do projeto
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tarefas/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    patch:
+      tags: [Tarefas]
+      summary: Atualizar tarefa (título, descrição, status, prioridade)
+      description: >
+        Atualização parcial: campos omitidos permanecem inalterados. A transição
+        de status é estrita: pending → in_progress → done, um passo por vez, sem
+        pular etapas nem retroceder (regra 5). Ao mudar para done, completedAt é
+        preenchido automaticamente pelo servidor (regra 3); completedAt não pode
+        ser informado manualmente.
+      operationId: updateTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateTaskRequest'
+      responses:
+        '200':
+          description: Tarefa atualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: >
+            Transição de status inválida (regra 5): pular etapa (ex.:
+            pending → done) ou retroceder.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: about:blank
+                title: Transição de status inválida
+                status: 422
+                detail: 'Não é permitido ir de pending para done: a transição deve seguir pending → in_progress → done.'
+    delete:
+      tags: [Tarefas]
+      summary: Excluir tarefa
+      description: >
+        Somente tarefas com status pending podem ser excluídas (regra 2).
+        Tarefas in_progress ou done retornam 422.
+      operationId: deleteTask
+      responses:
+        '204':
+          description: Tarefa excluída (sem conteúdo)
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: Tarefa não está pending e não pode ser excluída (regra 2).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+              example:
+                type: about:blank
+                title: Não é possível excluir a tarefa
+                status: 422
+                detail: Apenas tarefas com status pending podem ser excluídas.
+
+components:
+  parameters:
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      description: Identificador do projeto (UUID)
+      schema:
+        type: string
+        format: uuid
+    TaskId:
+      name: id
+      in: path
+      required: true
+      description: Identificador da tarefa (UUID)
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    NotFound:
+      description: Recurso não encontrado
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetails'
+          example:
+            type: about:blank
+            title: Not Found
+            status: 404
+            detail: Projeto não encontrado.
+    ValidationError:
+      description: Requisição malformada ou com campos inválidos
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ValidationProblemDetails'
+          example:
+            type: about:blank
+            title: One or more validation errors occurred.
+            status: 400
+            errors:
+              name:
+                - The name field is required.
+
+  schemas:
+    ProjectStatus:
+      type: string
+      enum: [active, archived]
+      description: Status do projeto. Default active na criação.
+
+    TaskStatus:
+      type: string
+      enum: [pending, in_progress, done]
+      description: Status da tarefa. Default pending na criação.
+
+    TaskPriority:
+      type: string
+      enum: [low, medium, high]
+      description: Prioridade da tarefa.
+
+    Project:
+      type: object
+      required: [id, name, status, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+        createdAt:
+          type: string
+          format: date-time
+      example:
+        id: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        name: Migração de plataforma
+        description: Migrar o serviço legado para .NET 8
+        status: active
+        createdAt: '2026-07-04T13:00:00Z'
+
+    Task:
+      type: object
+      required: [id, title, status, priority, createdAt, projectId]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+        createdAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Preenchido automaticamente pelo servidor quando status vira done.
+        projectId:
+          type: string
+          format: uuid
+      example:
+        id: 9c1b2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e
+        title: Configurar EF Core
+        description: Adicionar DbContext e migrations
+        status: in_progress
+        priority: high
+        createdAt: '2026-07-04T13:10:00Z'
+        completedAt: null
+        projectId: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+
+    CreateProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+      additionalProperties: false
+
+    UpdateProjectRequest:
+      type: object
+      description: Ao menos um campo deve ser informado. Campos omitidos ficam inalterados.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/ProjectStatus'
+      additionalProperties: false
+
+    CreateTaskRequest:
+      type: object
+      required: [title, priority]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+      additionalProperties: false
+
+    UpdateTaskRequest:
+      type: object
+      description: >
+        Ao menos um campo deve ser informado. Campos omitidos ficam inalterados.
+        completedAt não é aceito: é gerenciado pelo servidor (regra 3).
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/TaskStatus'
+        priority:
+          $ref: '#/components/schemas/TaskPriority'
+      additionalProperties: false
+
+    ProblemDetails:
+      type: object
+      description: Erro no formato RFC 7807.
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        instance:
+          type: string
+      required: [status]
+
+    ValidationProblemDetails:
+      allOf:
+        - $ref: '#/components/schemas/ProblemDetails'
+        - type: object
+          properties:
+            errors:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: string
+              description: Mapa campo → lista de mensagens de erro de validação.
