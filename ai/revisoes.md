@@ -24,3 +24,9 @@ Cada entrada segue o mesmo padrão, curto: **Sugestão** → **Revisão** → **
 - **Sugestão:** IA finalizou o `decisoes.md`.
 - **Revisão:** li o documento inteiro conferindo consistência, completude e aderência ao enunciado.
 - **Decisão:** aprovado sem alterações (etapa "Validar a spec" do SDD). Processo dirigido por mim em fases, documento por documento, spec antes do código.
+
+## R4 — Nomenclatura da entidade de tarefa
+
+- **Sugestão:** IA modelaria a entidade como classe `Task`, espelhando o schema `Task` do contrato.
+- **Revisão:** `Task` colide com `System.Threading.Tasks.Task` e poluiria todo o código async (`Task<T>`) com ambiguidade. O nome da classe não afeta o JSON (usa nome de propriedade) nem a rota (`/tarefas`).
+- **Decisão:** classe C# renomeada para `TaskItem`; contrato e rota preservados. Consistência de wire mantida, ergonomia do código preservada.
