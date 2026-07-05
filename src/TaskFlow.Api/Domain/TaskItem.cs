@@ -13,9 +13,9 @@ public class TaskItem
 
     public string? Description { get; set; }
 
-    public TaskStatus Status { get; set; } = TaskStatus.Pending;
+    public TaskItemStatus Status { get; set; } = TaskItemStatus.Pending;
 
-    public TaskPriority Priority { get; set; }
+    public TaskItemPriority Priority { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
