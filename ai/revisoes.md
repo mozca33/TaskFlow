@@ -55,3 +55,9 @@ Cada entrada segue o mesmo padrão, curto: **Sugestão** → **Revisão** → **
 - **Sugestão:** IA implementou `[JsonUnmappedMemberHandling(Disallow)]` nos DTOs de entrada para honrar o `additionalProperties: false` do contrato.
 - **Revisão:** reforcei o requisito de que o 400 resultante deve **nomear o campo** desconhecido (ex.: typo `naem`), não devolver um erro genérico.
 - **Decisão:** mantido `Disallow`; a resposta de validação identifica o campo estranho.
+
+## R9 — Timestamps perdendo o marcador UTC
+
+- **Sugestão:** IA implementou a persistência sem tratar o `DateTimeKind` na leitura do SQLite.
+- **Revisão:** na verificação de wire dos endpoints, notei que `createdAt`/`completedAt` vinham com `Z` na criação, mas **sem `Z`** após ler do banco (o SQLite devolve `Kind=Unspecified`) — inconsistente com o contrato (D9: UTC).
+- **Decisão:** `UtcDateTimeConverter` aplicado por convenção a todo `DateTime`, marcando as datas lidas como UTC. Confirmado no wire: todos os timestamps voltam com `Z`.
