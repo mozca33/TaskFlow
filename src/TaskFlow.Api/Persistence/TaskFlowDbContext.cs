@@ -22,4 +22,10 @@ public class TaskFlowDbContext : DbContext
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(TaskFlowDbContext).Assembly);
     }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        // Toda data lida do SQLite volta como UTC (ver UtcDateTimeConverter).
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+    }
 }
