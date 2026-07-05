@@ -337,6 +337,7 @@ components:
           maxLength: 100
         description:
           type: string
+          maxLength: 2000
           nullable: true
         status:
           $ref: '#/components/schemas/ProjectStatus'
@@ -362,6 +363,7 @@ components:
           maxLength: 200
         description:
           type: string
+          maxLength: 2000
           nullable: true
         status:
           $ref: '#/components/schemas/TaskStatus'
@@ -398,6 +400,7 @@ components:
           maxLength: 100
         description:
           type: string
+          maxLength: 2000
           nullable: true
       additionalProperties: false
 
@@ -411,6 +414,7 @@ components:
           maxLength: 100
         description:
           type: string
+          maxLength: 2000
           nullable: true
         status:
           $ref: '#/components/schemas/ProjectStatus'
@@ -426,6 +430,7 @@ components:
           maxLength: 200
         description:
           type: string
+          maxLength: 2000
           nullable: true
         priority:
           $ref: '#/components/schemas/TaskPriority'
@@ -443,6 +448,7 @@ components:
           maxLength: 200
         description:
           type: string
+          maxLength: 2000
           nullable: true
         status:
           $ref: '#/components/schemas/TaskStatus'

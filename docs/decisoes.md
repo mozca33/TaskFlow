@@ -28,7 +28,7 @@ conjunto mínimo de endpoints e regras de negócio definido no desafio — nada 
 |-------|------|--------|
 | `id` | UUID (Guid) | Gerado pelo servidor |
 | `name` | string | Obrigatório, ≤ 100 caracteres |
-| `description` | string? | Opcional |
+| `description` | string? | Opcional, ≤ 2000 caracteres |
 | `status` | enum `active` \| `archived` | Default `active` |
 | `createdAt` | datetime (UTC) | Gerado pelo servidor |
 
@@ -38,7 +38,7 @@ conjunto mínimo de endpoints e regras de negócio definido no desafio — nada 
 |-------|------|--------|
 | `id` | UUID (Guid) | Gerado pelo servidor |
 | `title` | string | Obrigatório, ≤ 200 caracteres |
-| `description` | string? | Opcional |
+| `description` | string? | Opcional, ≤ 2000 caracteres |
 | `status` | enum `pending` \| `in_progress` \| `done` | Default `pending` |
 | `priority` | enum `low` \| `medium` \| `high` | Obrigatório |
 | `createdAt` | datetime (UTC) | Gerado pelo servidor |
