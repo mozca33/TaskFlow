@@ -23,6 +23,7 @@ builder.Services.AddDbContext<TaskFlowDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("TaskFlow")));
 
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 
 var app = builder.Build();
 
