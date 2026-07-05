@@ -46,24 +46,12 @@ Cada entrada segue o mesmo padrão, curto: **Sugestão** → **Revisão** → **
 
 ## R7 — Serialização de enum no wire
 
-- **Sugestão:** manter a serialização JSON padrão do .NET.
-- **Revisão:** o padrão emite enum como número (`1`); o contrato exige string snake_case (`in_progress`). Divergência que quebraria os testes de contrato.
-- **Decisão:** `JsonStringEnumConverter` + `JsonNamingPolicy.SnakeCaseLower` (nativo do .NET 8), bidirecional. A verificação no wire real fica para os testes da Etapa 3.
+- **Sugestão:** IA implementou a serialização de enum como string snake_case (`JsonStringEnumConverter` + `SnakeCaseLower`), apontando que o padrão do .NET emitiria número (`1`).
+- **Revisão:** conferi contra o contrato — os valores exigidos são string minúscula/snake_case (`in_progress`), e a conversão precisa valer nos dois sentidos (serializar e desserializar).
+- **Decisão:** configuração mantida. A verificação no wire real fica para os testes da Etapa 3.
 
-## R8 — `priority` obrigatória vs default silencioso
+## R8 — Rejeição de campos desconhecidos no corpo
 
-- **Sugestão:** IA modelou `priority` como enum anulável + `[Required]` (ausência → 400).
-- **Revisão:** cogitei tornar `Low` o default silencioso (toda tarefa tem prioridade). Mas isso contraria a tabela do enunciado (`priority` Obrigatório = Sim) e exigiria afrouxar o contrato.
-- **Decisão:** mantida obrigatória, fiel ao enunciado. Fidelidade à spec acima da ergonomia — é o que o desafio avalia.
-
-## R9 — Rejeição de campos desconhecidos no corpo
-
-- **Sugestão:** aceitar o comportamento padrão do System.Text.Json, que ignora campos desconhecidos.
-- **Revisão:** ignorar em silêncio deixa um typo (`{"naem": ...}`) passar como se `name` estivesse ausente, gerando erro confuso. O contrato declara `additionalProperties: false`.
-- **Decisão:** `[JsonUnmappedMemberHandling(Disallow)]` nos DTOs de entrada — campo estranho → 400 nomeando o campo.
-
-## R10 — Nunca expor entidades de domínio
-
-- **Sugestão:** retornar as entidades diretamente nas respostas.
-- **Revisão:** a resposta é a camada mais externa antes da tela; entidade vazaria a navegação (`Tasks`) e acoplaria o contrato ao EF. Fronteira de segurança e de contrato.
-- **Decisão:** respostas sempre via DTO (`ProjectResponse`/`TaskResponse`), expondo só os campos do schema.
+- **Sugestão:** IA implementou `[JsonUnmappedMemberHandling(Disallow)]` nos DTOs de entrada para honrar o `additionalProperties: false` do contrato.
+- **Revisão:** reforcei o requisito de que o 400 resultante deve **nomear o campo** desconhecido (ex.: typo `naem`), não devolver um erro genérico.
+- **Decisão:** mantido `Disallow`; a resposta de validação identifica o campo estranho.
