@@ -152,6 +152,18 @@ das regras — não uma contradição — e é implementado exatamente assim.
   (`/projetos`, `/tarefas`), sem prefixo de versão. Versionamento fica para
   próximos passos.
 
+- **D13 — Migrations no startup + SQLite em arquivo.** As migrations pendentes
+  são aplicadas na inicialização (`Database.Migrate()`), para que a aplicação
+  "só rode" com `dotnet run`, sem passo manual. SQLite em arquivo (não
+  in-memory) foi escolhido por persistir entre execuções e exercitar o EF de
+  verdade; o in-memory fica como alternativa documentada. Ressalva: os testes de
+  contrato (Etapa 3) trocam a configuração do provider.
+
+- **D14 — Índice em `projectId` + cascade.** A FK `TaskItem.ProjectId` recebe
+  índice porque toda listagem de tarefas filtra por projeto
+  (`GET /projetos/{id}/tarefas`). O cascade delete Projeto→Tarefas é salvaguarda
+  de integridade referencial (não há endpoint de exclusão de projeto no MVP).
+
 ---
 
 ## 6. Organização do código (Clean Code / SOLID)
