@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using TaskFlow.Api.Errors;
 using TaskFlow.Api.Persistence;
 using TaskFlow.Api.Services;
 
@@ -25,7 +26,13 @@ builder.Services.AddDbContext<TaskFlowDbContext>(options =>
 builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 
+// Erros de domínio → ProblemDetails (RFC 7807) num ponto central.
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
+
 var app = builder.Build();
+
+app.UseExceptionHandler();
 
 // Aplica migrations pendentes na inicialização (SQLite local).
 using (var scope = app.Services.CreateScope())
