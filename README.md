@@ -109,3 +109,9 @@ TaskFlow/
 [Conventional Commits](https://www.conventionalcommits.org/) — `tipo(escopo): descrição`
 (tipo/escopo em inglês, descrição em português). Cada commit representa uma
 unidade lógica coerente, e a ordem prova o fluxo spec-first.
+
+## Navegação para IA e manutenção
+
+Este repositório inclui um [`AGENTS.md`](AGENTS.md) com um mapa do projeto —
+fontes da verdade, estrutura do código e convenções — para orientar assistentes
+de IA e novos desenvolvedores a encontrar cada coisa em segundos.
