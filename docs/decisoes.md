@@ -120,6 +120,8 @@ das regras — não uma contradição — e é implementado exatamente assim.
   `pending → in_progress → done`, avançando **um passo por vez**. Não é permitido
   pular etapa (`pending → done`) nem retroceder. Qualquer transição fora dessa
   sequência retorna **422**. É a leitura literal de "deve seguir o fluxo".
+  Repetir o status atual (ex.: `pending → pending`) é tratado como **no-op
+  idempotente** — não é avanço nem retrocesso, então não viola a regra 5.
 
 - **D2 — Desarquivar projeto (permitido).** `PATCH` de `archived → active` é
   aceito. Nenhuma regra do desafio proíbe reativar um projeto; apenas o ato de
