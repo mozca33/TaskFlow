@@ -30,3 +30,9 @@ Cada entrada segue o mesmo padrão, curto: **Sugestão** → **Revisão** → **
 - **Sugestão:** IA modelaria a entidade como classe `Task`, espelhando o schema `Task` do contrato.
 - **Revisão:** `Task` colide com `System.Threading.Tasks.Task` e poluiria todo o código async (`Task<T>`) com ambiguidade. O nome da classe não afeta o JSON (usa nome de propriedade) nem a rota (`/tarefas`).
 - **Decisão:** classe C# renomeada para `TaskItem`; contrato e rota preservados. Consistência de wire mantida, ergonomia do código preservada.
+
+## R5 — Divergência de limite em `description` (spec × persistência)
+
+- **Sugestão:** IA configurou `HasMaxLength(2000)` em `description` na camada de persistência.
+- **Revisão:** revisando a camada, notei que o `openapi.yaml` declarava `description` sem limite — divergência spec × código. Num fluxo SDD a spec é a fonte da verdade; o código não pode impor restrição não documentada.
+- **Decisão:** limite de 2000 é razoável (evita texto ilimitado), então **alinhei a spec ao código**: adicionei `maxLength: 2000` no `openapi.yaml` (Project, Task e DTOs) e nas tabelas do `decisoes.md`. A validação de entrada (DTO) refletirá o mesmo limite → 400.
