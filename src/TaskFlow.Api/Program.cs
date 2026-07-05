@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using TaskFlow.Api.Binding;
 using TaskFlow.Api.Errors;
 using TaskFlow.Api.Persistence;
 using TaskFlow.Api.Services;
@@ -9,7 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        // Aceita enums em snake_case na query string (?status=in_progress).
+        options.ModelBinderProviders.Insert(0, new WireEnumModelBinderProvider());
+    })
     .AddJsonOptions(options =>
     {
         // Enums no wire como string minúscula/snake_case: active, in_progress, low… (D9).
