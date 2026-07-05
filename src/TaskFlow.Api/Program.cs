@@ -60,3 +60,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+// Expõe a classe Program (top-level statements) para os testes de contrato
+// via WebApplicationFactory<Program>.
+public partial class Program { }
