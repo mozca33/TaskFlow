@@ -5,37 +5,86 @@ plataforma de gerenciamento de tarefas colaborativas _TaskFlow_.
 
 Este repositório é um desafio técnico conduzido sob a metodologia
 **Specification-Driven Development (SDD)**: toda feature começa por uma
-especificação clara e acordada, a spec é a fonte da verdade, não o contrário.
-
-> **Status:** em construção. O histórico de commits é intencional e reflete o
-> fluxo SDD, na ordem **especificar → implementar → validar**.
+especificação clara e acordada, e a spec é a fonte da verdade — não o contrário.
 
 ## Metodologia (SDD)
 
-O trabalho segue quatro fases, refletidas no histórico de commits:
+O trabalho segue quatro fases, refletidas no histórico de commits — a
+especificação é commitada **antes** do código. Basta ler o `git log` para
+verificar essa ordem (`especificar → implementar → validar`).
 
-| Fase | Etapa SDD              | Entregável                                                                    |
-| ---- | ---------------------- | ----------------------------------------------------------------------------- |
-| 0    | Scaffold               | Estrutura do repositório, convenções                                          |
-| 1    | **Especificar**        | `openapi.yaml` (contrato), `docs/decisoes.md`, registro de uso de IA em `ai/` |
-| 2    | **Implementar**        | API guiada pela spec (Controllers, Services, Entidades)                       |
-| 3    | **Garantir aderência** | Testes de contrato (xUnit + `WebApplicationFactory`)                          |
+| Etapa SDD              | Entregável                                                                    |
+| ---------------------- | ----------------------------------------------------------------------------- |
+| **Especificar**        | `openapi.yaml` (contrato), `docs/decisoes.md`, registro de uso de IA em `ai/` |
+| **Implementar**        | API guiada pela spec (Controllers, Services, Domain, Persistence)             |
+| **Garantir aderência** | Testes de contrato (xUnit + `WebApplicationFactory`)                          |
 
-A especificação é commitada **antes** do código de implementação. Basta ler o
-`git log` para verificar essa ordem.
+O registro do uso de IA fica em `ai/` — em especial `ai/revisoes.md`, que
+documenta o que foi revisado, corrigido ou rejeitado das sugestões da IA.
 
 ## Stack
 
-- .NET 8 (ASP.NET Core Web API)
-- Entity Framework Core + SQLite
-- Respostas de erro em `ProblemDetails` / `ValidationProblemDetails` (RFC 7807)
-- Testes: xUnit + `WebApplicationFactory`
+- .NET 8 (ASP.NET Core Web API, controllers)
+- Entity Framework Core + SQLite (migrations aplicadas na inicialização)
+- Erros em `ProblemDetails` / `ValidationProblemDetails` (RFC 7807)
+- Testes: xUnit + `WebApplicationFactory` (SQLite in-memory)
 
-## Estrutura do repositório (planejada)
+## Pré-requisitos
+
+- [.NET SDK 8.0+](https://dotnet.microsoft.com/download) (desenvolvido com 8.0.4xx)
+
+## Como rodar
+
+```bash
+dotnet run --project src/TaskFlow.Api
+```
+
+A API sobe em `http://localhost:5192` (ver `Properties/launchSettings.json`), cria
+o arquivo `taskflow.db` (SQLite) e aplica as migrations automaticamente. Em
+ambiente de desenvolvimento, a documentação Swagger fica em `/swagger`.
+
+## Como executar os testes de contrato
+
+```bash
+dotnet test tests/TaskFlow.ContractTests
+```
+
+Os testes sobem a API em memória (SQLite in-memory) e validam o contrato:
+criação de recursos, as regras de negócio (retornos `422`), recursos
+inexistentes (`404`), filtros e a máquina de estados das tarefas.
+
+## Endpoints
+
+| Método   | Rota                        | Descrição                                    |
+| -------- | --------------------------- | -------------------------------------------- |
+| `POST`   | `/projetos`                 | Criar projeto                                |
+| `GET`    | `/projetos`                 | Listar projetos (filtro `?status=`)          |
+| `GET`    | `/projetos/{id}`            | Buscar projeto por ID                        |
+| `PATCH`  | `/projetos/{id}`            | Atualizar projeto (nome, descrição, status)  |
+| `POST`   | `/projetos/{id}/tarefas`    | Criar tarefa no projeto                      |
+| `GET`    | `/projetos/{id}/tarefas`    | Listar tarefas (filtros `?status=&priority=`)|
+| `PATCH`  | `/tarefas/{id}`             | Atualizar tarefa (título, descrição, status, prioridade) |
+| `DELETE` | `/tarefas/{id}`             | Excluir tarefa                               |
+
+Enums trafegam como string minúscula no contrato: `active`/`archived`,
+`pending`/`in_progress`/`done`, `low`/`medium`/`high`.
+
+## Regras de negócio
+
+1. **Arquivar projeto** só é permitido se nenhuma tarefa estiver `in_progress` → senão `422`.
+2. **Excluir tarefa** só é permitido se ela estiver `pending` → senão `422`.
+3. **Concluir tarefa** (`status=done`) preenche `completedAt` automaticamente (nunca manual).
+4. **Projeto arquivado** não aceita novas tarefas → `422`.
+5. **Transição de status** estrita: `pending → in_progress → done`, sem pular nem retroceder → senão `422`.
+
+As decisões de design por trás dessas regras estão em [`docs/decisoes.md`](docs/decisoes.md);
+o contrato completo, em [`openapi.yaml`](openapi.yaml).
+
+## Estrutura do repositório
 
 ```
 TaskFlow/
-├── openapi.yaml                 # Contrato da API (Fase 1)
+├── openapi.yaml                 # Contrato da API (OpenAPI 3.0)
 ├── docs/
 │   └── decisoes.md              # Decisões de design (ADR)
 ├── ai/                          # Registro de uso de IA
@@ -43,33 +92,20 @@ TaskFlow/
 │   ├── prompts.md
 │   └── revisoes.md
 ├── src/
-│   └── TaskFlow.Api/            # Implementação (Fase 2)
+│   └── TaskFlow.Api/
+│       ├── Controllers/         # Adaptam HTTP ↔ casos de uso
+│       ├── Services/            # Regras de negócio (as 5 restrições)
+│       ├── Domain/              # Entidades e enums
+│       ├── Dtos/                # Contratos de request/response
+│       ├── Persistence/         # DbContext, mapeamento, migrations
+│       ├── Errors/              # Exceções de domínio → ProblemDetails
+│       └── Binding/             # Model binder de enum (query em snake_case)
 └── tests/
-    └── TaskFlow.ContractTests/  # Testes de contrato (Fase 3)
-```
-
-## Pré-requisitos
-
-- [.NET SDK 8.0+](https://dotnet.microsoft.com/download) (desenvolvido com 8.0.x)
-
-## Como rodar
-
-> Disponível a partir da Fase 2. Comando planejado:
-
-```bash
-dotnet run --project src/TaskFlow.Api
-```
-
-## Como executar os testes de contrato
-
-> Disponível a partir da Fase 3. Comando planejado:
-
-```bash
-dotnet test tests/TaskFlow.ContractTests
+    └── TaskFlow.ContractTests/  # Testes de contrato (xUnit)
 ```
 
 ## Convenção de commits
 
 [Conventional Commits](https://www.conventionalcommits.org/) — `tipo(escopo): descrição`
 (tipo/escopo em inglês, descrição em português). Cada commit representa uma
-unidade lógica coerente.
+unidade lógica coerente, e a ordem prova o fluxo spec-first.
