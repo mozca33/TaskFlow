@@ -166,6 +166,26 @@ das regras — não uma contradição — e é implementado exatamente assim.
   (`GET /projetos/{id}/tarefas`). O cascade delete Projeto→Tarefas é salvaguarda
   de integridade referencial (não há endpoint de exclusão de projeto no MVP).
 
+- **D15 — Campos obrigatórios não aceitam string em branco.** `name`/`title` com
+  apenas espaços (`"   "`) são rejeitados com 400, honrando o `minLength: 1` do
+  contrato. Na criação isso já é garantido pelo `[Required]` (que faz `Trim` antes
+  de validar); na atualização parcial, onde não há `[Required]`, a validação usa
+  `string.IsNullOrWhiteSpace` no `IValidatableObject`. Alinha código e contrato.
+
+- **D16 — Corpo de erro uniforme via `IProblemDetailsService`.** As respostas
+  404/422 são escritas pelo `IProblemDetailsService`, o mesmo mecanismo do 400
+  automático do `[ApiController]`. Assim todos os erros saem com o mesmo formato
+  RFC 7807 enriquecido (`type` por status, `traceId`), em vez de um
+  `ProblemDetails` montado à mão sem esses campos.
+
+- **D17 — Enums só aceitam os valores string do contrato.** O
+  `JsonStringEnumConverter` usa `allowIntegerValues: false`, rejeitando enum
+  numérico no corpo (`priority: 1`, `99`, `-5` → 400) — o padrão do .NET aceitaria
+  inteiros sem checar range, permitindo persistir valores fora do domínio. No
+  filtro de query, o `WireEnumModelBinder` também rejeita string numérica
+  (`?priority=99`) e valida `Enum.IsDefined`. Garante que entrada **e** saída
+  fiquem sempre dentro do enum declarado no `openapi.yaml`.
+
 ---
 
 ## 6. Organização do código (Clean Code / SOLID)
