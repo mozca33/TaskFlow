@@ -80,13 +80,22 @@ Enums trafegam como string minúscula no contrato: `active`/`archived`,
 As decisões de design por trás dessas regras estão em [`docs/decisoes.md`](docs/decisoes.md);
 o contrato completo, em [`openapi.yaml`](openapi.yaml).
 
+## Análise crítica e próximos passos
+
+O escopo entregue é o mínimo definido no desafio. Uma avaliação honesta do que
+ficou **deliberadamente fora** (autenticação, paginação, rate limiting,
+observabilidade) e um roadmap de melhorias priorizado por impacto × esforço estão
+em [`docs/analise.md`](docs/analise.md). O resumo de fronteira de escopo também
+está em [`docs/decisoes.md` §7](docs/decisoes.md).
+
 ## Estrutura do repositório
 
 ```
 TaskFlow/
 ├── openapi.yaml                 # Contrato da API (OpenAPI 3.0)
 ├── docs/
-│   └── decisoes.md              # Decisões de design (ADR)
+│   ├── decisoes.md              # Decisões de design (ADR)
+│   └── analise.md               # Análise crítica e roadmap de melhorias
 ├── ai/                          # Registro de uso de IA
 │   ├── skills.md
 │   ├── prompts.md
