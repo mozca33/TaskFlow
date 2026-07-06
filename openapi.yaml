@@ -8,8 +8,10 @@ info:
   version: 1.0.0
 
 servers:
-  - url: http://localhost:5000
-    description: Ambiente local de desenvolvimento
+  - url: https://localhost:7054
+    description: Ambiente local de desenvolvimento (HTTPS)
+  - url: http://localhost:5192
+    description: Ambiente local de desenvolvimento (HTTP)
 
 tags:
   - name: Projetos
@@ -117,7 +119,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               example:
-                type: about:blank
+                type: https://tools.ietf.org/html/rfc4918#section-11.2
                 title: Não é possível arquivar o projeto
                 status: 422
                 detail: O projeto possui tarefas em andamento (in_progress) e não pode ser arquivado.
@@ -162,7 +164,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               example:
-                type: about:blank
+                type: https://tools.ietf.org/html/rfc4918#section-11.2
                 title: Não é possível criar tarefa
                 status: 422
                 detail: O projeto está arquivado e não aceita novas tarefas.
@@ -236,7 +238,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               example:
-                type: about:blank
+                type: https://tools.ietf.org/html/rfc4918#section-11.2
                 title: Transição de status inválida
                 status: 422
                 detail: 'Não é permitido ir de pending para done: a transição deve seguir pending → in_progress → done.'
@@ -259,7 +261,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ProblemDetails'
               example:
-                type: about:blank
+                type: https://tools.ietf.org/html/rfc4918#section-11.2
                 title: Não é possível excluir a tarefa
                 status: 422
                 detail: Apenas tarefas com status pending podem ser excluídas.
@@ -291,7 +293,7 @@ components:
           schema:
             $ref: '#/components/schemas/ProblemDetails'
           example:
-            type: about:blank
+            type: https://tools.ietf.org/html/rfc9110#section-15.5.5
             title: Not Found
             status: 404
             detail: Projeto não encontrado.
@@ -302,7 +304,7 @@ components:
           schema:
             $ref: '#/components/schemas/ValidationProblemDetails'
           example:
-            type: about:blank
+            type: https://tools.ietf.org/html/rfc9110#section-15.5.1
             title: One or more validation errors occurred.
             status: 400
             errors:
