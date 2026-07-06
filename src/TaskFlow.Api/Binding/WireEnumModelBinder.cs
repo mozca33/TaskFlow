@@ -15,7 +15,7 @@ public sealed class WireEnumModelBinder : IModelBinder
 {
     private static readonly JsonSerializerOptions Options = new()
     {
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
+        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower, allowIntegerValues: false) }
     };
 
     public Task BindModelAsync(ModelBindingContext bindingContext)
@@ -51,11 +51,21 @@ public sealed class WireEnumModelBinder : IModelBinder
 
     private static bool TryParse(Type enumType, string raw, out object? value)
     {
+        value = null;
+
+        // O filtro é uma string do contrato (low/medium/high, in_progress…). Um valor
+        // numérico cru (?priority=1, ?priority=99) não pertence ao enum do contrato e
+        // vira 400 — o conversor de string sozinho ainda parsearia "99" como inteiro.
+        if (long.TryParse(raw, out _))
+        {
+            return false;
+        }
+
         try
         {
             // Serializa o texto como string JSON e desserializa via o conversor snake_case.
             value = JsonSerializer.Deserialize(JsonSerializer.Serialize(raw), enumType, Options);
-            return value is not null;
+            return value is not null && Enum.IsDefined(enumType, value);
         }
         catch (JsonException)
         {
