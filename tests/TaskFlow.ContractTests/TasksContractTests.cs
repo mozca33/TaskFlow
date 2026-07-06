@@ -72,6 +72,140 @@ public class TasksContractTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Create_with_blank_title_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var response = await _client.PostAsync(
+            $"/projetos/{projectId}/tarefas", Json.Body("""{"title":"   ","priority":"low"}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_numeric_priority_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var response = await _client.PostAsync(
+            $"/projetos/{projectId}/tarefas", Json.Body("""{"title":"T","priority":1}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_out_of_range_priority_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var response = await _client.PostAsync(
+            $"/projetos/{projectId}/tarefas", Json.Body("""{"title":"T","priority":99}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Patch_with_numeric_status_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var taskId = await CreateTaskAsync(projectId);
+        var response = await _client.PatchAsync($"/tarefas/{taskId}", Json.Body("""{"status":2}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_with_numeric_priority_filter_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var response = await _client.GetAsync($"/projetos/{projectId}/tarefas?priority=99");
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_title_too_long_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var longTitle = new string('a', 201); // limite é 200
+        var response = await _client.PostAsync(
+            $"/projetos/{projectId}/tarefas", Json.Body($$"""{"title":"{{longTitle}}","priority":"low"}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_invalid_priority_string_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var response = await _client.PostAsync(
+            $"/projetos/{projectId}/tarefas", Json.Body("""{"title":"T","priority":"urgent"}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_wrong_type_title_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var response = await _client.PostAsync(
+            $"/projetos/{projectId}/tarefas", Json.Body("""{"title":123,"priority":"low"}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_over_posted_completedAt_returns_400()
+    {
+        // completedAt é read-only (D4); enviá-lo na criação é campo desconhecido.
+        var projectId = await CreateProjectAsync();
+        var response = await _client.PostAsync(
+            $"/projetos/{projectId}/tarefas",
+            Json.Body("""{"title":"T","priority":"low","completedAt":"2020-01-01T00:00:00Z"}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Patch_with_over_posted_completedAt_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var taskId = await CreateTaskAsync(projectId);
+        var response = await _client.PatchAsync(
+            $"/tarefas/{taskId}", Json.Body("""{"completedAt":"2020-01-01T00:00:00Z"}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Patch_with_blank_title_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var taskId = await CreateTaskAsync(projectId);
+        var response = await _client.PatchAsync($"/tarefas/{taskId}", Json.Body("""{"title":"   "}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_of_nonexistent_project_returns_404()
+    {
+        var response = await _client.GetAsync($"/projetos/{Guid.NewGuid()}/tarefas");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Patch_invalid_status_enum_returns_400()
+    {
+        var projectId = await CreateProjectAsync();
+        var taskId = await CreateTaskAsync(projectId);
+
+        var response = await _client.PatchAsync($"/tarefas/{taskId}", Json.Body("""{"status":"bogus"}"""));
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Patch_repeating_current_status_is_noop_returns_200()
+    {
+        var projectId = await CreateProjectAsync();
+        var taskId = await CreateTaskAsync(projectId);
+
+        var response = await AdvanceAsync(taskId, "pending"); // pending -> pending (no-op, D1)
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("pending", doc.RootElement.GetProperty("status").GetString());
+        Assert.Equal(JsonValueKind.Null, doc.RootElement.GetProperty("completedAt").ValueKind);
+    }
+
+    [Fact]
     public async Task Create_in_archived_project_returns_422()
     {
         var projectId = await CreateProjectAsync();

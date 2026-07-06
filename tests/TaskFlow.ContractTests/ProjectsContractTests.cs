@@ -64,6 +64,59 @@ public class ProjectsContractTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Create_with_blank_name_returns_400()
+    {
+        var response = await _client.PostAsync("/projetos", Json.Body("""{"name":"   "}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_name_too_long_returns_400()
+    {
+        var longName = new string('a', 101); // limite é 100
+        var response = await _client.PostAsync("/projetos", Json.Body($$"""{"name":"{{longName}}"}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_over_posted_status_returns_400()
+    {
+        // status não faz parte do corpo de criação (nasce active); enviá-lo é campo desconhecido.
+        var response = await _client.PostAsync("/projetos", Json.Body("""{"name":"x","status":"archived"}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Create_with_malformed_json_returns_400()
+    {
+        var response = await _client.PostAsync("/projetos", Json.Body("""{ "name": }"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Patch_with_blank_name_returns_400()
+    {
+        var id = await CreateProjectAsync();
+        var response = await _client.PatchAsync($"/projetos/{id}", Json.Body("""{"name":"   "}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Patch_with_null_name_returns_400()
+    {
+        var id = await CreateProjectAsync();
+        var response = await _client.PatchAsync($"/projetos/{id}", Json.Body("""{"name":null}"""));
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task List_with_invalid_status_filter_returns_400()
+    {
+        var response = await _client.GetAsync("/projetos?status=bogus");
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Get_by_id_returns_200()
     {
         var id = await CreateProjectAsync();
@@ -79,6 +132,19 @@ public class ProjectsContractTests : IClassFixture<CustomWebApplicationFactory>
     {
         var response = await _client.GetAsync($"/projetos/{Guid.NewGuid()}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task NotFound_error_includes_traceId()
+    {
+        var response = await _client.GetAsync($"/projetos/{Guid.NewGuid()}");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.True(
+            doc.RootElement.TryGetProperty("traceId", out var traceId)
+            && !string.IsNullOrWhiteSpace(traceId.GetString()),
+            "404 deve carregar traceId, como o 400 (D16).");
     }
 
     [Fact]
@@ -130,6 +196,9 @@ public class ProjectsContractTests : IClassFixture<CustomWebApplicationFactory>
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
         Assert.False(string.IsNullOrWhiteSpace(doc.RootElement.GetProperty("detail").GetString()));
+        Assert.True( // 422 também carrega traceId, uniforme ao 400/404 (D16)
+            doc.RootElement.TryGetProperty("traceId", out var traceId)
+            && !string.IsNullOrWhiteSpace(traceId.GetString()));
     }
 
     [Fact]
