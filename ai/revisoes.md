@@ -61,3 +61,21 @@ Cada entrada segue o mesmo padrão, curto: **Sugestão** → **Revisão** → **
 - **Sugestão:** IA implementou a persistência sem tratar o `DateTimeKind` na leitura do SQLite.
 - **Revisão:** na verificação de wire dos endpoints, notei que `createdAt`/`completedAt` vinham com `Z` na criação, mas **sem `Z`** após ler do banco (o SQLite devolve `Kind=Unspecified`) — inconsistente com o contrato (D9: UTC).
 - **Decisão:** `UtcDateTimeConverter` aplicado por convenção a todo `DateTime`, marcando as datas lidas como UTC. Confirmado no wire: todos os timestamps voltam com `Z`.
+
+## R10 — Revisão crítica geral do sistema
+
+- **Revisão:** revisão adversarial completa (arquitetura, banco, erros, testes, segurança, performance, infra), questionando cada escolha e cada regra.
+- **Corrigi:** `servers.url` do contrato (porta inexistente); 404/422 sem `type` → uniformizados via `IProblemDetailsService` ([D16](../docs/decisoes.md)); whitespace em `name`/`title` no PATCH → rejeitado ([D15](../docs/decisoes.md)) — na criação o `[Required]` já faz `Trim`, então descartei uma validação redundante; lacunas de teste (404 de listagem, enum inválido no corpo, no-op D1).
+- **Decisão:** correções de aderência aplicadas e testadas. Duplicação de validação e mapeamento entidade→response nos services ficam como dívida (`../docs/analise.md`), não implementados — disciplina de escopo > gold-plating.
+
+## R11 — Enum numérico furando o contrato
+
+- **Achado:** `JsonStringEnumConverter` sem `allowIntegerValues: false` → `priority: 1/99/-5` era aceito e **persistido**, com a API violando o próprio `openapi.yaml`; filtro `?priority=99` idem. Os testes não pegavam (só enviavam dados válidos).
+- **Revisão:** a correção de "uma linha" fechava só o corpo; a query ainda parseava `"99"` — descobri **rodando os testes**. Endureci o `WireEnumModelBinder` (rejeita string numérica + `Enum.IsDefined`).
+- **Decisão:** [D17](../docs/decisoes.md) + testes em corpo e query, verificado ao vivo. Enum case-insensitive (`"LOW"`) e chave JSON duplicada ficam como dívida.
+
+## R12 — `traceId` alegado, mas ausente em 404/422
+
+- **Achado:** D16 afirmava `traceId` em todos os erros, mas só o 400 o trazia — a doc dizia o que o código não entregava (a mesma classe do `servers.url`).
+- **Decisão:** corrigi o **código**, não a doc: `CustomizeProblemDetails` injeta `traceId` em 400/404/422 (+ teste, verificado ao vivo). Alinhei também os exemplos `about:blank` → URLs RFC no `openapi.yaml`.
+- **Rejeitei:** bloquear transição de tarefa em projeto arquivado — não está nas 5 regras do PDF; fica como observação documentada, não código.
