@@ -50,8 +50,10 @@ dotnet test tests/TaskFlow.ContractTests
 ```
 
 Os testes sobem a API em memória (SQLite in-memory) e validam o contrato:
-criação de recursos, as regras de negócio (retornos `422`), recursos
-inexistentes (`404`), filtros e a máquina de estados das tarefas.
+criação de recursos, as 5 regras de negócio (retornos `422`), recursos
+inexistentes (`404`), validação de entrada (`400`: campos obrigatórios, tamanhos,
+enums, campos desconhecidos), filtros, a máquina de estados das tarefas, e a
+conformidade dos responses com o schema do `openapi.yaml` (NSwag/NJsonSchema).
 
 ## Endpoints
 
