@@ -185,6 +185,14 @@ public class ProjectsContractTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Patch_nonexistent_project_returns_404()
+    {
+        var response = await _client.PatchAsync(
+            $"/projetos/{Guid.NewGuid()}", Json.Body("""{"name":"x"}"""));
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Archive_with_in_progress_task_returns_422()
     {
         var projectId = await CreateProjectAsync();

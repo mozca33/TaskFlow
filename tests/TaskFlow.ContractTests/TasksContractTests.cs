@@ -241,6 +241,13 @@ public class TasksContractTests : IClassFixture<CustomWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Delete_nonexistent_task_returns_404()
+    {
+        var response = await _client.DeleteAsync($"/tarefas/{Guid.NewGuid()}");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Patch_skipping_status_returns_422()
     {
         var projectId = await CreateProjectAsync();
