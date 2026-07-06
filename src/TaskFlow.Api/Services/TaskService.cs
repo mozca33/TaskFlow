@@ -130,15 +130,15 @@ public class TaskService : ITaskService
             return;
         }
 
-        var transicaoValida =
+        var isValidTransition =
             (task.Status == TaskItemStatus.Pending && newStatus == TaskItemStatus.InProgress) ||
             (task.Status == TaskItemStatus.InProgress && newStatus == TaskItemStatus.Done);
 
-        if (!transicaoValida)
+        if (!isValidTransition)
         {
             throw new BusinessRuleException(
                 "Transição de status inválida",
-                $"Não é permitido ir de {ToWire(task.Status)} para {ToWire(newStatus)}: " +
+                $"Não é permitido ir de {ToContractName(task.Status)} para {ToContractName(newStatus)}: " +
                 "a transição deve seguir pending → in_progress → done, um passo por vez, sem retroceder.");
         }
 
@@ -151,7 +151,7 @@ public class TaskService : ITaskService
     }
 
     /// <summary>Nome do status como aparece no contrato (snake_case).</summary>
-    private static string ToWire(TaskItemStatus status) => status switch
+    private static string ToContractName(TaskItemStatus status) => status switch
     {
         TaskItemStatus.Pending => "pending",
         TaskItemStatus.InProgress => "in_progress",

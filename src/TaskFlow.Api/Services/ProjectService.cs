@@ -85,14 +85,14 @@ public class ProjectService : IProjectService
     /// </summary>
     private async Task ApplyStatusChangeAsync(Project project, ProjectStatus newStatus, CancellationToken ct)
     {
-        var arquivando = newStatus == ProjectStatus.Archived && project.Status != ProjectStatus.Archived;
+        var isArchiving = newStatus == ProjectStatus.Archived && project.Status != ProjectStatus.Archived;
 
-        if (arquivando)
+        if (isArchiving)
         {
-            var temTarefaEmAndamento = await _db.Tasks
+            var hasInProgressTask = await _db.Tasks
                 .AnyAsync(t => t.ProjectId == project.Id && t.Status == TaskItemStatus.InProgress, ct);
 
-            if (temTarefaEmAndamento)
+            if (hasInProgressTask)
             {
                 throw new BusinessRuleException(
                     "Não é possível arquivar o projeto",
