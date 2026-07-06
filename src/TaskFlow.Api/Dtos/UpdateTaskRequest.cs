@@ -38,10 +38,15 @@ public record UpdateTaskRequest : IValidatableObject
                 yield return new ValidationResult(
                     "O campo title não pode ser nulo.", new[] { nameof(Title) });
             }
-            else if (Title.Value.Length is < 1 or > 200)
+            else if (string.IsNullOrWhiteSpace(Title.Value))
             {
                 yield return new ValidationResult(
-                    "O campo title deve ter entre 1 e 200 caracteres.", new[] { nameof(Title) });
+                    "O campo title não pode ser vazio ou conter apenas espaços.", new[] { nameof(Title) });
+            }
+            else if (Title.Value.Length > 200)
+            {
+                yield return new ValidationResult(
+                    "O campo title deve ter no máximo 200 caracteres.", new[] { nameof(Title) });
             }
         }
 

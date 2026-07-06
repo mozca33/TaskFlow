@@ -35,10 +35,15 @@ public record UpdateProjectRequest : IValidatableObject
                 yield return new ValidationResult(
                     "O campo name não pode ser nulo.", new[] { nameof(Name) });
             }
-            else if (Name.Value.Length is < 1 or > 100)
+            else if (string.IsNullOrWhiteSpace(Name.Value))
             {
                 yield return new ValidationResult(
-                    "O campo name deve ter entre 1 e 100 caracteres.", new[] { nameof(Name) });
+                    "O campo name não pode ser vazio ou conter apenas espaços.", new[] { nameof(Name) });
+            }
+            else if (Name.Value.Length > 100)
+            {
+                yield return new ValidationResult(
+                    "O campo name deve ter no máximo 100 caracteres.", new[] { nameof(Name) });
             }
         }
 
